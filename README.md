@@ -1,4 +1,4 @@
-# BERTJSC
+# BERTJSC (with Infernce Classes)
 
 > **Note**: This is a fork that adds inference-only model classes without PyTorch Lightning dependency.
 >
