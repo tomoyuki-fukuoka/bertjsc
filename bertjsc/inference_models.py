@@ -46,7 +46,7 @@ class BertForMaskedLMInference(nn.Module):
             labels: Labels (not used in inference but kept for compatibility)
 
         Returns:
-            Output from BertForMaskedLM
+            transformers.modeling_outputs.MaskedLMOutput: Output containing loss (if labels provided) and logits
         """
         output = self.mlbert(
             input_ids=input_ids,
@@ -98,12 +98,11 @@ class SoftMaskedBertInference(nn.Module):
         self.encoder = self.mlbert.bert.encoder
         self.cls = self.mlbert.cls
 
-        # Loss function (kept for compatibility but not used in inference)
-        self.det_criterion = nn.BCELoss()
-        self.cor_criterion = nn.CrossEntropyLoss()
-
-        # Coefficient
-        self.coef = 0.8
+        # Cache mask token embedding to avoid recreating on every forward pass
+        with torch.no_grad():
+            mask_token_tensor = torch.tensor([[mask_token_id]], dtype=torch.long)
+            self.register_buffer('_mask_token_embedding',
+                               self.embeddings(mask_token_tensor).squeeze(0))
 
     @property
     def device(self):
@@ -140,9 +139,8 @@ class SoftMaskedBertInference(nn.Module):
         gru_output, _ = self.bidirectional_gru(embeddings)
         prob = self.sigmoid(self.linear(gru_output))
 
-        masked_e = self.embeddings(
-            torch.tensor([[self.mask_token_id]], dtype=torch.long).to(self.device)
-        )
+        # Use cached mask token embedding
+        masked_e = self._mask_token_embedding.to(embeddings.device).unsqueeze(0)
         soft_masked_embeddings = prob * masked_e + (1 - prob) * embeddings
 
         # Get extended attention mask
@@ -160,17 +158,7 @@ class SoftMaskedBertInference(nn.Module):
 
         prediction_scores = self.cls(h)
 
-        # Loss calculation is not needed for inference
-        loss = None
-        if output_ids is not None and det_labels is not None:
-            det_loss = self.det_criterion(prob.squeeze(), det_labels)
-            cor_loss = self.cor_criterion(
-                prediction_scores.view(-1, self.vocab_size),
-                output_ids.view(-1)
-            )
-            loss = self.coef * cor_loss + (1 - self.coef) * det_loss
-
         return MaskedLMOutput(
-            loss=loss,
+            loss=None,
             logits=prediction_scores
         )
