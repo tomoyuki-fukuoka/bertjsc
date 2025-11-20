@@ -125,7 +125,7 @@ BertForMaskedLMInference(card: str)
 ```
 
 **Parameters:**
-- `card` (str): HuggingFace model card name (e.g., 'cl-tohoku/bert-base-japanese-whole-word-masking')
+- `card` (str): Hugging Face model card name (e.g., 'cl-tohoku/bert-base-japanese-whole-word-masking')
 
 **Methods:**
 - `forward(input_ids, attention_mask, token_type_ids, labels=None)`: Forward pass for inference
@@ -141,7 +141,7 @@ SoftMaskedBertInference(card: str, mask_token_id: int, vocab_size: int)
 ```
 
 **Parameters:**
-- `card` (str): HuggingFace model card name
+- `card` (str): Hugging Face model card name
 - `mask_token_id` (int): ID of the mask token from tokenizer
 - `vocab_size` (int): Size of the vocabulary from tokenizer
 
